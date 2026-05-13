@@ -24,6 +24,11 @@ public class ProductDetailsPage {
     @FindBy(css = "[data-test-id='main-heading'], h1")
     public WebElement productTitle;
 
+
+
+
+
+    
     // Fiyat - AbeBooks veya satıcı sayfası
     @FindBy(css = ".bb-price, .item-price, [class*='price'], span[itemprop='price']")
     public WebElement productPrice;
