@@ -1,0 +1,39 @@
+<!DOCTYPE suite SYSTEM "http://testng.org/testng-1.9.dtd">
+<suite name="AbeBooks Test Suite" verbose="1">
+
+    <!-- MODÜL 1: Authentication - Sorumlu: Sumaya -->
+    <test name="Authentication Tests">
+        <classes>
+            <class name="com.abebooks.tests.auth_tests.LoginTest"/>
+        </classes>
+    </test>
+
+    <!-- MODÜL 2: Product Catalog - Sorumlu: Melike -->
+    <test name="Product Catalog Tests">
+        <classes>
+            <class name="com.abebooks.tests.product_tests.SearchTest"/>
+        </classes>
+    </test>
+
+    <!-- MODÜL 3: Shopping Cart - Sorumlu: Merve -->
+    <test name="Shopping Cart Tests">
+        <classes>
+            <class name="com.abebooks.tests.cart_tests.CartTest"/>
+        </classes>
+    </test>
+
+    <!-- MODÜL 4: Checkout & Payment - Sorumlu: Ebrar -->
+    <test name="Checkout and Payment Tests">
+        <classes>
+            <class name="com.abebooks.tests.checkout_tests.CheckoutTest"/>
+        </classes>
+    </test>
+
+    <!-- MODÜL 5: Order History - Sorumlu: Dilara -->
+    <test name="Order History Tests">
+        <classes>
+            <class name="com.abebooks.tests.order_tests.OrderHistoryTest"/>
+        </classes>
+    </test>
+
+</suite>
