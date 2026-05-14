@@ -1,6 +1,6 @@
 package com.abebooks.tests.checkout_tests;
 
-import com.abebooks.base.TestBase;
+import com.abebooks.base.BaseTest;
 import com.abebooks.pages.auth.LoginPage;
 import com.abebooks.pages.cart.CartPage;
 import com.abebooks.pages.product.SearchPage;
@@ -19,7 +19,7 @@ import org.testng.annotations.Test;
  * TC11 – Checkout Without Login (AbeBooks'ta login ZORUNLU → login sayfasına yönlendirilmeli)
  * TC12 – Empty Cart Checkout
  */
-public class CheckoutTest extends TestBase {
+public class CheckoutTest extends BaseTest {
 
     CheckoutPage checkoutPage;
     CartPage cartPage;

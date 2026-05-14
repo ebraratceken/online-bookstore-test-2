@@ -1,6 +1,6 @@
 package com.abebooks.tests.cart_tests;
 
-import com.abebooks.base.TestBase;
+import com.abebooks.base.BaseTest;
 import com.abebooks.pages.auth.LoginPage;
 import com.abebooks.pages.cart.CartPage;
 import com.abebooks.pages.product.SearchPage;
@@ -17,7 +17,7 @@ import org.testng.annotations.Test;
  * TC08 – Remove from Cart
  * TC09 – Update Quantity
  */
-public class CartTest extends TestBase {
+public class CartTest extends BaseTest {
 
     CartPage cartPage;
     SearchPage searchPage;

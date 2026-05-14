@@ -1,6 +1,6 @@
 package com.abebooks.tests.product_tests;
 
-import com.abebooks.base.TestBase;
+import com.abebooks.base.BaseTest;
 import com.abebooks.pages.product.ProductDetailsPage;
 import com.abebooks.pages.product.SearchPage;
 import com.abebooks.utilities.ConfigReader;
@@ -14,7 +14,7 @@ import org.testng.annotations.Test;
  * TC05 – Product Details View
  * TC06 – Category Filtering
  */
-public class SearchTest extends TestBase {
+public class SearchTest extends BaseTest {
 
     SearchPage searchPage;
     ProductDetailsPage detailsPage;
