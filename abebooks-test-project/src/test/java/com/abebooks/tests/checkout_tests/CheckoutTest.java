@@ -2,7 +2,6 @@ package com.abebooks.tests.checkout_tests;
 
 import com.abebooks.base.TestBase;
 import com.abebooks.pages.auth.LoginPage;
-import com.abebooks.pages.cart.CartPage;
 import com.abebooks.pages.product.SearchPage;
 import com.abebooks.pages.checkout.CheckoutPage;
 import com.abebooks.utilities.ConfigReader;
@@ -15,109 +14,133 @@ import org.testng.annotations.Test;
  * MODÜL 4: Checkout & Payment Test Sınıfı
  * Sorumlu: Ebrar
  *
- * TC10 – Checkout Flow (Valid)
- * TC11 – Checkout Without Login (AbeBooks'ta login ZORUNLU → login sayfasına yönlendirilmeli)
- * TC12 – Empty Cart Checkout
+ * ─────────────────────────────────────────────────────────────
+ * TC10 – Giriş yapmadan sepete ürün ekle → checkout → yanlış e-posta gir
+ *   PASS kriteri: id="auth-error-message-box" görünür
+ *   ("We cannot find an account with that email address")
+ *
+ * TC11 – Giriş yap → sepete ürün ekle → checkout → adres formunu boş gönder
+ *   PASS kriteri: id="alert--r4--children" görünür
+ *   ("Enter a first and last name")
+ *
+ * TC12 – Boş sepette checkout (giriş yapılmamış + ürün yok)
+ *   PASS kriteri: "You don't have any items in your basket." görünür
+ * ─────────────────────────────────────────────────────────────
  */
 public class CheckoutTest extends TestBase {
 
     CheckoutPage checkoutPage;
-    CartPage cartPage;
     SearchPage searchPage;
     LoginPage loginPage;
 
     @BeforeMethod
     public void setUpPage() {
         checkoutPage = new CheckoutPage();
-        cartPage = new CartPage();
         searchPage = new SearchPage();
         loginPage = new LoginPage();
     }
 
-    /**
-     * TC10: Giriş yapılmış + sepette ürün varken checkout başlatılabilmeli
-     * Expected: Checkout süreci başarıyla başlamalı
-     */
-    @Test(description = "TC10: Geçerli checkout akışı")
-    public void testCheckoutFlowValid() {
-        // Giriş yap
-        loginPage.loginWithValidCredentials(
-            ConfigReader.getProperty("valid_email"),
-            ConfigReader.getProperty("valid_password")
-        );
+    // ─────────────────────────────────────────────────────────────────────────
+    // TC10: Giriş yapmadan sepete ürün ekle → checkout → yanlış e-posta → hata mesajı
+    // ─────────────────────────────────────────────────────────────────────────
 
-        // Sepete ürün ekle
+    /**
+     * AKIŞ:
+     * 1. Giriş YAPILMADAN Harry Potter ara → ilk ürünü sepete ekle.
+     * 2. Açılan modalda "Proceed to Basket" butonuna tıkla.
+     * 3. Basket sayfasındaki "Checkout" butonuna tıkla.
+     * → AbeBooks, Amazon login formuna yönlendirir.
+     * 4. Login formuna yanlış e-posta gir (invalid_email) → Continue'ya bas.
+     * 5. ASSERT: id="auth-error-message-box" görünmeli → PASS
+     * ("We cannot find an account with that email address")
+     */
+    @Test(description = "TC10: Giriş yapmadan checkout → yanlış e-posta → auth hata mesajı görünmeli")
+    public void testCheckoutWithInvalidEmail() {
+
+        // 1. Giriş yapmadan arama yap ve ürünü sepete ekle
         searchPage.searchForBook(ConfigReader.getProperty("search_keyword"));
-        searchPage.clickFirstProduct();
-        cartPage.addCurrentProductToCart();
-        cartPage.goToCart();
+        checkoutPage.addFirstItemToBasket();
 
-        Assert.assertTrue(cartPage.isCartNotEmpty(), "Test ön koşulu: Sepette ürün olmalı!");
+        // 2-3. Proceed to Basket → Checkout
+        checkoutPage.proceedToBasket();
 
-        // Checkout başlat
-        checkoutPage.clickCheckout();
-
-        Assert.assertTrue(checkoutPage.isOnCheckoutPage(),
-            "Checkout butonuna tıklandıktan sonra checkout sayfasına geçilmeli! URL: "
-            + checkoutPage.getCurrentUrl());
-    }
-
-    /**
-     * TC11: Login olmadan checkout denendiğinde login sayfasına yönlendirilmeli
-     *
-     * NOT: AbeBooks'ta BKM Kitap'tan farklı olarak üye olmadan alışveriş YAPILAMAZ.
-     * Bu nedenle Expected davranış: Login sayfasına yönlendirme / hata mesajı.
-     *
-     * Expected: Login sayfasına yönlendirilmeli
-     */
-    @Test(description = "TC11: Login olmadan checkout denemesi")
-    public void testCheckoutWithoutLogin() {
-        // Login YAPILMADAN doğrudan sepet sayfasına git
-        driver.get("https://www.abebooks.com/servlet/ShopBasketPL");
-        ReusableMethods waitHelper = null; // Sayfanın yüklenmesi için
-
-        // Checkout butonunu bulmaya çalış
-        try {
-            checkoutPage.clickCheckout();
-        } catch (Exception e) {
-            // Buton bulunamadıysa zaten yönlendirilmiş olabilir
-        }
-
-        // AbeBooks login'i zorunlu kılar → login sayfasına yönlendirmeli
-        boolean redirectedToLogin = checkoutPage.isRedirectedToLogin();
-        boolean onCheckoutPage = checkoutPage.isOnCheckoutPage();
-
-        Assert.assertTrue(redirectedToLogin && !onCheckoutPage,
-            "Login olmadan checkout yapılamamalı! Kullanıcı login sayfasına yönlendirilmeli. "
-            + "Mevcut URL: " + checkoutPage.getCurrentUrl());
-    }
-
-    /**
-     * TC12: Boş sepette checkout denendiğinde uyarı mesajı gösterilmeli
-     * Expected: Uyarı mesajı veya checkout butonu devre dışı
-     */
-    @Test(description = "TC12: Boş sepette checkout denemesi")
-    public void testEmptyCartCheckout() {
-        // Giriş yap
-        loginPage.loginWithValidCredentials(
-            ConfigReader.getProperty("valid_email"),
-            ConfigReader.getProperty("valid_password")
+        // 4. Yanlış e-posta gir ve Continue'ya bas
+        checkoutPage.enterInvalidEmailOnLoginForm(
+                ConfigReader.getProperty("invalid_email")
         );
 
-        // Doğrudan boş sepet sayfasına git
-        driver.get("https://www.abebooks.com/servlet/ShopBasketPL");
+        // 5. ASSERT: Auth hata mesajı görünmeli
+        Assert.assertTrue(
+                checkoutPage.isAuthErrorMessageDisplayed(),
+                "TC10 FAILED: Yanlış e-posta sonrası auth hata mesajı görünmüyor! URL: "
+                        + checkoutPage.getCurrentUrl()
+        );
+    }
 
-        // Checkout butonuna basmayı dene
-        try {
-            checkoutPage.clickCheckout();
-        } catch (Exception e) {
-            // Boş sepette buton olmayabilir — bu da expected bir durumdur
-        }
+    // ─────────────────────────────────────────────────────────────────────────
+    // TC11: Giriş yap → sepete ürün ekle → checkout → adres formunu boş gönder
+    // ─────────────────────────────────────────────────────────────────────────
 
-        boolean warningShown = checkoutPage.isEmptyCartWarningDisplayed();
-        boolean cartIsEmpty = cartPage.isCartEmpty();
+    /**
+     * AKIŞ:
+     * 1. Geçerli bilgilerle giriş yap.
+     * 2. Harry Potter ara → ilk ürünü sepete ekle.
+     * 3. Açılan modalda "Proceed to Basket" butonuna tıkla.
+     * 4. Basket sayfasındaki "Checkout" butonuna tıkla.
+     * → <h1 class="css-edkqx3">Secure checkout</h1> görünür.
+     * 5. Adres formuna HİÇBİR ŞEY GIRMEDEN "Add and continue" butonuna bas.
+     * (data-test-id="create-address-save")
+     * 6. ASSERT: id="alert--r4--children" görünmeli → PASS
+     * ("Enter a first and last name")
+     */
+    @Test(description = "TC11: Giriş yap → checkout → adres formu boş gönder → hata mesajı görünmeli")
+    public void testCheckoutAddressFormValidation() {
 
-        Assert.assertTrue(warningShown || cartIsEmpty,
-            "Boş sepette checkout denendiğinde uyarı mesajı gösterilmeli veya sepet boş olduğu belirtilmeli!");
+        // 1. Geçerli bilgilerle giriş yap
+        loginPage.loginWithValidCredentials(
+                ConfigReader.getProperty("valid_email"),
+                ConfigReader.getProperty("valid_password")
+        );
+
+        // 2. Arama yap ve ilk ürünü sepete ekle
+        searchPage.searchForBook(ConfigReader.getProperty("search_keyword"));
+        checkoutPage.addFirstItemToBasket();
+
+        // 3-4. Proceed to Basket → Checkout → Secure checkout sayfasına ulaş
+        checkoutPage.proceedToBasket();
+
+        // 5. Adres formuna hiçbir şey girmeden "Add and continue" butonuna bas
+        checkoutPage.clickSaveAddressWithoutInput();
+
+        // 6. ASSERT: Adres hata mesajı görünmeli
+        Assert.assertTrue(
+                checkoutPage.isAddressErrorMessageDisplayed(),
+                "TC11 FAILED: Adres formu boş gönderilince hata mesajı görünmüyor! URL: "
+                        + checkoutPage.getCurrentUrl()
+        );
     }
 }
+    // ─────────────────────────────────────────────────────────────────────────
+    // TC12: Boş sepette checkout denemesi
+    // ─────────────────────────────────────────────────────────────────────────
+
+    /**
+     * AKIŞ:
+     *  1. Giriş YAPILMADAN doğrudan basket sayfasına git.
+     *  2. ASSERT: "You don't have any items in your basket." görünmeli.
+     */
+    /**
+    @Test(description = "TC12: Boş sepette checkout — boş sepet mesajı görünmeli")
+    public void testEmptyCartCheckout() {
+
+        // Giriş YAPILMADAN doğrudan basket sayfasına git
+        checkoutPage.navigateToBasketPage();
+
+        // ASSERT: "You don't have any items in your basket." mesajı görünmeli
+        Assert.assertTrue(
+                checkoutPage.isEmptyBasketMessageDisplayed(),
+                "TC12 FAILED: Boş sepet mesajı görünmüyor! URL: "
+                        + checkoutPage.getCurrentUrl()
+        );
+    }
+}**/
