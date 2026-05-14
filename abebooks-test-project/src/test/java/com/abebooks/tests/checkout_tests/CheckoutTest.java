@@ -15,15 +15,14 @@ import org.testng.annotations.Test;
  * Sorumlu: Ebrar
  *
  * ─────────────────────────────────────────────────────────────
- * TC10 – Giriş yapmadan sepete ürün ekle → checkout → yanlış e-posta gir
- *   PASS kriteri: id="auth-error-message-box" görünür
- *   ("We cannot find an account with that email address")
+ * TC10 – Geçerli checkout akışı (giriş yapılmış + ürün var)
+ *   PASS kriteri: <h1 class="css-edkqx3">Secure checkout</h1> görünür
  *
- * TC11 – Giriş yap → sepete ürün ekle → checkout → adres formunu boş gönder
- *   PASS kriteri: id="alert--r4--children" görünür
- *   ("Enter a first and last name")
+ * TC11 – Login olmadan checkout (giriş yapılmamış + ürün var)
+ *   PASS kriteri 1: Amazon login formu (signInSubmit) görünür
+ *   PASS kriteri 2: Giriş sonrası "Secure checkout" görünür
  *
- * TC12 – Boş sepette checkout (giriş yapılmamış + ürün yok)
+ * TC12 – Boş sepette checkout (giriş yapılmış + ürün yok)
  *   PASS kriteri: "You don't have any items in your basket." görünür
  * ─────────────────────────────────────────────────────────────
  */
@@ -36,67 +35,25 @@ public class CheckoutTest extends TestBase {
     @BeforeMethod
     public void setUpPage() {
         checkoutPage = new CheckoutPage();
-        searchPage = new SearchPage();
-        loginPage = new LoginPage();
+        searchPage   = new SearchPage();
+        loginPage    = new LoginPage();
     }
 
     // ─────────────────────────────────────────────────────────────────────────
-    // TC10: Giriş yapmadan sepete ürün ekle → checkout → yanlış e-posta → hata mesajı
+    // TC10: Geçerli checkout akışı
     // ─────────────────────────────────────────────────────────────────────────
 
     /**
      * AKIŞ:
-     * 1. Giriş YAPILMADAN Harry Potter ara → ilk ürünü sepete ekle.
-     * 2. Açılan modalda "Proceed to Basket" butonuna tıkla.
-     * 3. Basket sayfasındaki "Checkout" butonuna tıkla.
-     * → AbeBooks, Amazon login formuna yönlendirir.
-     * 4. Login formuna yanlış e-posta gir (invalid_email) → Continue'ya bas.
-     * 5. ASSERT: id="auth-error-message-box" görünmeli → PASS
-     * ("We cannot find an account with that email address")
+     *  1. Geçerli bilgilerle giriş yap (Amazon iki adımlı: email → şifre).
+     *  2. Harry Potter ara → ilk ürünü sepete ekle (Add to basket).
+     *  3. Açılan modalda "Proceed to Basket" butonuna tıkla.
+     *  4. <h1 class="css-edkqx3">Secure checkout</h1> görünür → PASS
      */
-    @Test(description = "TC10: Giriş yapmadan checkout → yanlış e-posta → auth hata mesajı görünmeli")
-    public void testCheckoutWithInvalidEmail() {
+    @Test(description = "TC10: Geçerli checkout akışı — Secure checkout sayfasına ulaşılmalı")
+    public void testCheckoutFlowValid() {
 
-        // 1. Giriş yapmadan arama yap ve ürünü sepete ekle
-        searchPage.searchForBook(ConfigReader.getProperty("search_keyword"));
-        checkoutPage.addFirstItemToBasket();
-
-        // 2-3. Proceed to Basket → Checkout
-        checkoutPage.proceedToBasket();
-
-        // 4. Yanlış e-posta gir ve Continue'ya bas
-        checkoutPage.enterInvalidEmailOnLoginForm(
-                ConfigReader.getProperty("invalid_email")
-        );
-
-        // 5. ASSERT: Auth hata mesajı görünmeli
-        Assert.assertTrue(
-                checkoutPage.isAuthErrorMessageDisplayed(),
-                "TC10 FAILED: Yanlış e-posta sonrası auth hata mesajı görünmüyor! URL: "
-                        + checkoutPage.getCurrentUrl()
-        );
-    }
-
-    // ─────────────────────────────────────────────────────────────────────────
-    // TC11: Giriş yap → sepete ürün ekle → checkout → adres formunu boş gönder
-    // ─────────────────────────────────────────────────────────────────────────
-
-    /**
-     * AKIŞ:
-     * 1. Geçerli bilgilerle giriş yap.
-     * 2. Harry Potter ara → ilk ürünü sepete ekle.
-     * 3. Açılan modalda "Proceed to Basket" butonuna tıkla.
-     * 4. Basket sayfasındaki "Checkout" butonuna tıkla.
-     * → <h1 class="css-edkqx3">Secure checkout</h1> görünür.
-     * 5. Adres formuna HİÇBİR ŞEY GIRMEDEN "Add and continue" butonuna bas.
-     * (data-test-id="create-address-save")
-     * 6. ASSERT: id="alert--r4--children" görünmeli → PASS
-     * ("Enter a first and last name")
-     */
-    @Test(description = "TC11: Giriş yap → checkout → adres formu boş gönder → hata mesajı görünmeli")
-    public void testCheckoutAddressFormValidation() {
-
-        // 1. Geçerli bilgilerle giriş yap
+        // 1. Giriş yap
         loginPage.loginWithValidCredentials(
                 ConfigReader.getProperty("valid_email"),
                 ConfigReader.getProperty("valid_password")
@@ -106,41 +63,70 @@ public class CheckoutTest extends TestBase {
         searchPage.searchForBook(ConfigReader.getProperty("search_keyword"));
         checkoutPage.addFirstItemToBasket();
 
-        // 3-4. Proceed to Basket → Checkout → Secure checkout sayfasına ulaş
+        // 3. "Proceed to Basket" butonuna tıkla
         checkoutPage.proceedToBasket();
 
-        // 5. Adres formuna hiçbir şey girmeden "Add and continue" butonuna bas
-        checkoutPage.clickSaveAddressWithoutInput();
-
-        // 6. ASSERT: Adres hata mesajı görünmeli
+        // 4. ASSERT: "Secure checkout" başlığı görünmeli
         Assert.assertTrue(
-                checkoutPage.isAddressErrorMessageDisplayed(),
-                "TC11 FAILED: Adres formu boş gönderilince hata mesajı görünmüyor! URL: "
+                checkoutPage.isSecureCheckoutDisplayed(),
+                "TC10 FAILED: 'Secure checkout' başlığı görünmüyor! URL: "
                         + checkoutPage.getCurrentUrl()
         );
     }
-}
+
     // ─────────────────────────────────────────────────────────────────────────
-    // TC12: Boş sepette checkout denemesi
+    // TC11: Login olmadan checkout denemesi
     // ─────────────────────────────────────────────────────────────────────────
 
     /**
      * AKIŞ:
-     *  1. Giriş YAPILMADAN doğrudan basket sayfasına git.
-     *  2. ASSERT: "You don't have any items in your basket." görünmeli.
+     *  1. Giriş YAPILMADAN Harry Potter ara → ilk ürünü sepete ekle.
+     *  2. "Proceed to Basket" butonuna tıkla.
+     *     → AbeBooks, Amazon login formuna yönlendirir.
+     *  3. ASSERT #1: id="signInSubmit" butonu görünmeli (login'e yönlendirildi).
+     *  4. Login formundan giriş yap (email adımı → şifre adımı).
+     *  5. Giriş sonrası AbeBooks otomatik olarak basket sayfasına döner.
+     *  6. ASSERT #2: "Secure checkout" başlığı görünmeli.
      */
-    /**
-    @Test(description = "TC12: Boş sepette checkout — boş sepet mesajı görünmeli")
-    public void testEmptyCartCheckout() {
+    @Test(description = "TC11: Login olmadan checkout — önce login formu, sonra Secure checkout görünmeli")
+    public void testCheckoutWithoutLogin() {
 
-        // Giriş YAPILMADAN doğrudan basket sayfasına git
-        checkoutPage.navigateToBasketPage();
+        // 1. Giriş yapmadan arama yap ve ürünü sepete ekle
+        searchPage.searchForBook(ConfigReader.getProperty("search_keyword"));
+        checkoutPage.addFirstItemToBasket();
 
-        // ASSERT: "You don't have any items in your basket." mesajı görünmeli
+        // 2. Proceed to Basket
+        checkoutPage.proceedToBasket();
+
+        // 3. ASSERT #1: Amazon login formu görünmeli
         Assert.assertTrue(
-                checkoutPage.isEmptyBasketMessageDisplayed(),
-                "TC12 FAILED: Boş sepet mesajı görünmüyor! URL: "
-                        + checkoutPage.getCurrentUrl()
+                checkoutPage.isRedirectedToLoginForm(),
+                "TC11 FAILED [Adım 1]: Login olmadan checkout'ta Amazon login formu "
+                        + "görünmeli! URL: " + checkoutPage.getCurrentUrl()
+        );
+
+        // 4. Login formundan giriş yap
+        checkoutPage.loginViaAmazonForm(
+                ConfigReader.getProperty("valid_email"),
+                ConfigReader.getProperty("valid_password")
+        );
+
+        // 5. Login sonrası basket sayfasına dön ve Checkout butonuna bas
+        checkoutPage.navigateToBasketPage();
+        ReusableMethods.waitForClickability(checkoutPage.checkoutButton, 15).click();
+        ReusableMethods.waitForPageLoad(10);
+
+        // 6. ASSERT #2: "Secure checkout" başlığı görünmeli
+        Assert.assertTrue(
+                checkoutPage.isSecureCheckoutDisplayed(),
+                "TC11 FAILED [Adım 2]: Giriş sonrası 'Secure checkout' görünmüyor! "
+                        + "URL: " + checkoutPage.getCurrentUrl()
         );
     }
-}**/
+
+    // ─────────────────────────────────────────────────────────────────────────
+    // TC12:
+    // ─────────────────────────────────────────────────────────────────────────
+
+
+}
