@@ -1,109 +1,122 @@
 package com.abebooks.tests.cart_tests;
 
-import com.abebooks.base.TestBase;
-import com.abebooks.pages.auth.LoginPage;
 import com.abebooks.pages.cart.CartPage;
-import com.abebooks.pages.product.SearchPage;
 import com.abebooks.utilities.ConfigReader;
+import com.abebooks.utilities.Driver;
 import org.testng.Assert;
+import org.testng.annotations.AfterMethod;
 import org.testng.annotations.BeforeMethod;
 import org.testng.annotations.Test;
 
 /**
- * MODÜL 3: Shopping Cart Test Sınıfı
- * Sorumlu: Merve
- *
- * TC07 – Add to Cart
- * TC08 – Remove from Cart
- * TC09 – Update Quantity
+ * MODÜL 3: Shopping Cart Tests
+ * Test Case'ler: TC07, TC08, TC09
  */
-public class CartTest extends TestBase {
+public class CartTest {
 
     CartPage cartPage;
-    SearchPage searchPage;
-    LoginPage loginPage;
 
     @BeforeMethod
-    public void setUpPage() {
+    public void setUp() {
         cartPage = new CartPage();
-        searchPage = new SearchPage();
-        loginPage = new LoginPage();
-
-        // Her test öncesi giriş yap
-        loginPage.loginWithValidCredentials(
-            ConfigReader.getProperty("valid_email"),
-            ConfigReader.getProperty("valid_password")
+        cartPage.login(
+                ConfigReader.getProperty("valid_email"),
+                ConfigReader.getProperty("valid_password")
         );
     }
 
-    /**
-     * TC07: Ürün sepete başarıyla eklenebilmeli
-     * Expected: Ürün sepete eklendi mesajı veya sepet sayacı arttı
-     */
-    @Test(description = "TC07: Ürün sepete ekle")
-    public void testAddToCart() {
-        // Ürünü bul ve detay sayfasına git
-        searchPage.searchForBook(ConfigReader.getProperty("search_keyword"));
-        searchPage.clickFirstProduct();
-
-        // Sepete ekle
-        cartPage.addCurrentProductToCart();
-
-        // Sepete git ve kontrol et
-        cartPage.goToCart();
-
-        Assert.assertTrue(cartPage.isCartNotEmpty(),
-            "Ürün sepete eklendikten sonra sepet boş olmamalı!");
-
-        Assert.assertTrue(cartPage.getCartItemCount() >= 1,
-            "Sepette en az 1 ürün bulunmalı!");
+    @AfterMethod
+    public void tearDown() {
+        Driver.quitDriver();
     }
 
     /**
-     * TC08: Sepetten ürün kaldırılabilmeli
-     * Expected: Ürün sepetten silindi
+     * TC07 - Sepete Ürün Ekleme
+     * Kullanıcı ürünü sepete ekleyebilmeli.
+     * Sepet boş olmamalı ve en az 1 ürün içermeli.
      */
-    @Test(description = "TC08: Sepetten ürün kaldır")
-    public void testRemoveFromCart() {
-        // Önce sepete ürün ekle
-        searchPage.searchForBook(ConfigReader.getProperty("search_keyword"));
-        searchPage.clickFirstProduct();
+    @Test(description = "TC07 - Add product to shopping cart")
+    public void tc07_addToCart() {
+
+        cartPage.searchForBook(ConfigReader.getProperty("search_keyword"));
+
+        Assert.assertTrue(
+                cartPage.hasSearchResults(),
+                "TC07 FAIL: Arama sonucu gelmedi."
+        );
+
+        cartPage.addCurrentProductToCart();
+
+        Assert.assertTrue(
+                cartPage.isCartNotEmpty(),
+                "TC07 FAIL: Sepet boş olmamalı!"
+        );
+
+        Assert.assertTrue(
+                cartPage.getCartItemCount() >= 1,
+                "TC07 FAIL: Sepette en az 1 ürün olmalı!"
+        );
+
+        System.out.println("TC07 PASS: Sepetteki ürün sayısı = " + cartPage.getCartItemCount());
+    }
+
+    /**
+     * TC08 - Sepetten Ürün Kaldırma
+     * Kullanıcı sepetteki ürünü silebilmeli.
+     * Kaldırma sonrası ürün sayısı azalmalı veya sepet boşalmalı.
+     */
+    @Test(description = "TC08 - Remove product from shopping cart")
+    public void tc08_removeFromCart() {
+
+        cartPage.searchForBook(ConfigReader.getProperty("search_keyword"));
         cartPage.addCurrentProductToCart();
         cartPage.goToCart();
 
-        Assert.assertTrue(cartPage.isCartNotEmpty(), "Test ön koşulu: Sepette ürün olmalı!");
+        Assert.assertTrue(
+                cartPage.isCartNotEmpty(),
+                "TC08 FAIL: Ön koşul başarısız — sepette ürün olmalı!"
+        );
 
-        int beforeCount = cartPage.getCartItemCount();
-
-        // Ürünü kaldır
+        int countBefore = cartPage.getCartItemCount();
         cartPage.removeFirstItem();
+        int countAfter = cartPage.getCartItemCount();
 
-        int afterCount = cartPage.getCartItemCount();
+        Assert.assertTrue(
+                cartPage.isCartEmpty() || countAfter < countBefore,
+                "TC08 FAIL: Ürün sayısı azalmalıydı! Önce: "
+                        + countBefore + " Sonra: " + countAfter
+        );
 
-        Assert.assertTrue(afterCount < beforeCount || cartPage.isCartEmpty(),
-            "Ürün kaldırıldıktan sonra sepetteki ürün sayısı azalmalı!");
+        System.out.println("TC08 PASS: Önce = " + countBefore + " | Sonra = " + countAfter);
     }
 
     /**
-     * TC09: Sepetteki ürün miktarı güncellenebilmeli
-     * Expected: Miktar doğru şekilde güncellendi
+     * TC09 - Ürün Adedi Güncelleme
+     * Kullanıcı sepetteki ürünün adedini güncelleyebilmeli.
+     * Güncelleme sonrası adet "2" olarak görünmeli.
      */
-    @Test(description = "TC09: Sepet miktarı güncelle")
-    public void testUpdateQuantity() {
-        // Önce sepete ürün ekle
-        searchPage.searchForBook(ConfigReader.getProperty("search_keyword"));
-        searchPage.clickFirstProduct();
+    @Test(description = "TC09 - Update item quantity in shopping cart")
+    public void tc09_updateQuantity() {
+
+        cartPage.searchForBook(ConfigReader.getProperty("search_keyword"));
         cartPage.addCurrentProductToCart();
         cartPage.goToCart();
 
-        Assert.assertTrue(cartPage.isCartNotEmpty(), "Test ön koşulu: Sepette ürün olmalı!");
+        Assert.assertTrue(
+                cartPage.isCartNotEmpty(),
+                "TC09 FAIL: Ön koşul başarısız — sepette ürün olmalı!"
+        );
 
-        // Miktarı 2 yap
         cartPage.updateQuantity("2");
 
-        String updatedQuantity = cartPage.getCurrentQuantity();
+        String qty = cartPage.getCurrentQuantity();
 
-        Assert.assertEquals(updatedQuantity, "2",
-            "Miktar 2 olarak güncellenmeli! Mevcut değer: " + updatedQuantity);
+        Assert.assertEquals(
+                qty,
+                "2",
+                "TC09 FAIL: Beklenen adet 2, gerçekleşen: " + qty
+        );
+
+        System.out.println("TC09 PASS: Adet = " + qty);
     }
 }
