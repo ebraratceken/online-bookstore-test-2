@@ -193,6 +193,10 @@ public class CheckoutPage {
         }
     }
 
+
+
+
+
     public String getCurrentUrl() {
         return DriverManager.getDriver().getCurrentUrl();
     }
