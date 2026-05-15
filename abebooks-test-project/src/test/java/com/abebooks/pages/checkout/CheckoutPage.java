@@ -1,105 +1,199 @@
-package com.abebooks.pages.checkout;
+package com.bookstore.pages.checkout;
 
-import com.abebooks.utilities.Driver;
-import com.abebooks.utilities.ReusableMethods;
+import com.bookstore.utils.DriverManager;
+import com.bookstore.utils.WaitUtils;
 import org.openqa.selenium.WebElement;
 import org.openqa.selenium.support.FindBy;
 import org.openqa.selenium.support.PageFactory;
 
 /**
- * MODÜL 4: Checkout & Payment (Ödeme)
- * Sorumlu: Ebrar
- * Test Case'ler: TC10, TC11, TC12
+ * Page Object: Checkout
+ * Path: src/main/java/com/bookstore/pages/checkout/CheckoutPage.java
+ *
+ * Migrated from legacy com.abebooks.pages.checkout.CheckoutPage.
+ * - ReusableMethods  → WaitUtils
+ * - Driver.getDriver() → DriverManager.getDriver()
+ *
+ * Covers: TC10, TC11, TC13
  */
 public class CheckoutPage {
 
     public CheckoutPage() {
-        PageFactory.initElements(Driver.getDriver(), this);
+        PageFactory.initElements(DriverManager.getDriver(), this);
     }
 
-    // ===== LOCATOR'LAR =====
+    // ─────────────────────────────────────────────
+    // LOCATORS
+    // ─────────────────────────────────────────────
 
-    @FindBy(css = "a[href*='checkout'], button[class*='checkout'], .checkout-btn")
+    /** Header "Sign in" link — id="sign-on" */
+    @FindBy(id = "sign-on")
+    public WebElement signOnLink;
+
+    /** Amazon login — email field — id="ap_email" */
+    @FindBy(id = "ap_email")
+    public WebElement emailInput;
+
+    /** Amazon login — password field — id="ap_password" */
+    @FindBy(id = "ap_password")
+    public WebElement passwordInput;
+
+    /** Amazon login — submit button — id="signInSubmit" */
+    @FindBy(id = "signInSubmit")
+    public WebElement signInSubmitButton;
+
+    /** Search box — name="kn" */
+    @FindBy(name = "kn")
+    public WebElement searchBox;
+
+    /** Search button — id="header-searchbox-button" */
+    @FindBy(id = "header-searchbox-button")
+    public WebElement searchButton;
+
+    /** First product "Add to basket" button — id="add-to-basket-link-1" */
+    @FindBy(id = "add-to-basket-link-1")
+    public WebElement addToBasketButton;
+
+    /** Modal "Proceed to Basket" button — id="shopping-basket-modal-checkout" */
+    @FindBy(id = "shopping-basket-modal-checkout")
+    public WebElement proceedToBasketButton;
+
+    /** Basket page "Checkout" button — data-test-id="proceed-to-checkout-button" */
+    @FindBy(css = "[data-test-id='proceed-to-checkout-button']")
     public WebElement checkoutButton;
 
-    @FindBy(css = ".checkout-container, [class*='checkout-step'], #checkout-form")
-    public WebElement checkoutContainer;
+    /** Secure checkout heading — h1.css-edkqx3 */
+    @FindBy(css = "h1.css-edkqx3")
+    public WebElement secureCheckoutHeading;
 
-    // Login olmadan checkout denendiğinde yönlendirme mesajı veya login sayfası
-    @FindBy(css = "#email, input[name='email'], .sign-in-form")
-    public WebElement loginFormOnCheckout;
+    /** TC13: Address form "Add and continue" button — data-test-id="create-address-save" */
+    @FindBy(css = "[data-test-id='create-address-save']")
+    public WebElement saveAddressButton;
 
-    // Boş sepet uyarısı
-    @FindBy(css = ".empty-basket, .empty-cart, [class*='empty'], .warning-message")
-    public WebElement emptyCartWarning;
+    /** TC13: Address form error message — id="alert--r4--children" */
+    @FindBy(id = "alert--r4--children")
+    public WebElement addressErrorMessage;
 
-    // Teslimat adresi formu
-    @FindBy(css = "input[name='firstName'], #firstName")
-    public WebElement firstNameInput;
-
-    @FindBy(css = "input[name='lastName'], #lastName")
-    public WebElement lastNameInput;
-
-    @FindBy(css = "input[name='address'], #address1")
-    public WebElement addressInput;
-
-    // Ödeme başarı/hata mesajları
-    @FindBy(css = ".order-confirmation, .success-message, [class*='confirmation']")
-    public WebElement orderConfirmation;
-
-    @FindBy(css = ".payment-error, .card-error, [class*='payment-error']")
-    public WebElement paymentError;
-
-    // ===== METOTLAR =====
+    // ─────────────────────────────────────────────
+    // ACTIONS
+    // ─────────────────────────────────────────────
 
     /**
-     * TC10 - Checkout butonuna tıkla
+     * TC10 & TC13: sign-on → email → password → signInSubmit
      */
-    public void clickCheckout() {
-        ReusableMethods.waitForClickability(checkoutButton, 10);
-        ReusableMethods.jsClick(checkoutButton);
-        ReusableMethods.waitForPageLoad(10);
+    public void signIn(String email, String password) {
+        WaitUtils.waitForClickability(signOnLink, 10).click();
+        WaitUtils.waitForVisibility(emailInput, 15).clear();
+        emailInput.sendKeys(email);
+        WaitUtils.waitForVisibility(passwordInput, 15).clear();
+        passwordInput.sendKeys(password);
+        WaitUtils.waitForClickability(signInSubmitButton, 10).click();
+        WaitUtils.waitForPageLoad(15);
     }
 
     /**
-     * TC10 - Checkout sayfasına ulaşıldı mı kontrol et
+     * TC11 & TC12: Adds only the first search result to the basket.
+     * A search must have been performed beforehand.
      */
-    public boolean isOnCheckoutPage() {
-        String url = Driver.getDriver().getCurrentUrl();
-        return url.contains("checkout") || url.contains("Checkout");
+    public void addFirstItemToBasket() {
+        WaitUtils.waitForClickability(addToBasketButton, 15).click();
     }
 
     /**
-     * TC11 - Login olmadan checkout yapılmaya çalışıldı mı
-     * AbeBooks'ta login zorunlu, bu yüzden login sayfasına yönlendirme bekleniyor
+     * TC11: Modal → Proceed to Basket → Checkout (two steps in sequence)
      */
-    public boolean isRedirectedToLogin() {
-        String url = Driver.getDriver().getCurrentUrl();
+    public void proceedToBasket() {
+        WaitUtils.waitForClickability(proceedToBasketButton, 15).click();
+        WaitUtils.waitForPageLoad(10);
+        WaitUtils.waitForClickability(checkoutButton, 15).click();
+        WaitUtils.waitForPageLoad(10);
+    }
+
+    /**
+     * TC10 & TC13: Search for a keyword and add the first result to basket.
+     */
+    public void searchAndAddToBasket(String keyword) {
+        WaitUtils.waitForClickability(searchBox, 10).clear();
+        searchBox.sendKeys(keyword);
+        WaitUtils.waitForClickability(searchButton, 10).click();
+        WaitUtils.waitForPageLoad(10);
+        WaitUtils.waitForClickability(addToBasketButton, 15).click();
+    }
+
+    /**
+     * TC10 & TC13: Modal → Proceed to Basket → Checkout
+     */
+    public void proceedToCheckout() {
+        WaitUtils.waitForClickability(proceedToBasketButton, 15).click();
+        WaitUtils.waitForPageLoad(10);
+        WaitUtils.waitForClickability(checkoutButton, 15).click();
+        WaitUtils.waitForPageLoad(10);
+    }
+
+    /**
+     * TC11: Sign in via the Amazon login form (email → password → submit).
+     */
+    public void loginViaAmazonForm(String email, String password) {
+        WaitUtils.waitForVisibility(emailInput, 15).clear();
+        emailInput.sendKeys(email);
+        WaitUtils.waitForVisibility(passwordInput, 15).clear();
+        passwordInput.sendKeys(password);
+        WaitUtils.waitForClickability(signInSubmitButton, 10).click();
+        WaitUtils.waitForPageLoad(15);
+    }
+
+    /**
+     * TC11: Navigate directly to the basket page after login.
+     */
+    public void navigateToBasketPage() {
+        DriverManager.getDriver().get("https://www.abebooks.com/checkout/basket");
+        WaitUtils.waitForPageLoad(10);
+    }
+
+    // ─────────────────────────────────────────────
+    // ASSERTIONS / PREDICATES
+    // ─────────────────────────────────────────────
+
+    /**
+     * TC10 & TC11: Returns true if "Secure checkout" heading is visible.
+     */
+    public boolean isSecureCheckoutDisplayed() {
         try {
-            boolean loginFormVisible = loginFormOnCheckout.isDisplayed();
-            return url.contains("login") || url.contains("Login") || url.contains("SignIn") || loginFormVisible;
+            WaitUtils.waitForVisibility(secureCheckoutHeading, 15);
+            return secureCheckoutHeading.isDisplayed()
+                    && secureCheckoutHeading.getText().toLowerCase().contains("secure checkout");
         } catch (Exception e) {
-            return url.contains("login") || url.contains("Login") || url.contains("SignIn");
+            return false;
         }
     }
 
     /**
-     * TC12 - Boş sepet uyarı mesajı var mı kontrol et
+     * TC11: Returns true if the Amazon login form (signInSubmit) is visible.
      */
-    public boolean isEmptyCartWarningDisplayed() {
+    public boolean isRedirectedToLoginForm() {
         try {
-            ReusableMethods.waitForVisibility(emptyCartWarning, 5);
-            return emptyCartWarning.isDisplayed();
+            WaitUtils.waitForVisibility(signInSubmitButton, 15);
+            return signInSubmitButton.isDisplayed();
         } catch (Exception e) {
-            // URL'den de kontrol edilebilir
-            return Driver.getDriver().getCurrentUrl().contains("empty");
+            return false;
         }
     }
 
     /**
-     * Mevcut URL'yi döndür
+     * TC13: Returns true if the address validation error message is visible
+     * and contains the expected text.
      */
+    public boolean isAddressErrorMessageDisplayed() {
+        try {
+            WaitUtils.waitForVisibility(addressErrorMessage, 15);
+            return addressErrorMessage.isDisplayed()
+                    && addressErrorMessage.getText().contains("Enter a first and last name");
+        } catch (Exception e) {
+            return false;
+        }
+    }
+
     public String getCurrentUrl() {
-        return Driver.getDriver().getCurrentUrl();
+        return DriverManager.getDriver().getCurrentUrl();
     }
 }
